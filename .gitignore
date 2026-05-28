@@ -1,0 +1,26 @@
+# Environment
+.env
+jarvis_env/
+venv/
+__pycache__/
+*.pyc
+
+# Build
+dist/
+build/
+*.spec
+
+# Data
+data/memory.db
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temp
+*.tmp
+*.mp3
