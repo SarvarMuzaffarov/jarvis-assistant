@@ -15,21 +15,42 @@ import time
 
 from config import ASSISTANT_NAME, OWNER_NAME
 from modules.command_processor import CommandProcessor
-from modules.ai_chat_module import AIChat
-from modules.tts_module import TextToSpeech
 from modules.memory_module import MemoryModule
-from modules.internet_module import InternetModule
-from modules.gui_module import JarvisGUI
+
+# Himoyalangan importlar — kutubxona yo'q bo'lsa xato bermaydi
+try:
+    from modules.ai_chat_module import AIChat
+except Exception as e:
+    print(f"  ⚠ AI modul: {e}")
+    AIChat = None
+
+try:
+    from modules.tts_module import TextToSpeech
+except Exception as e:
+    print(f"  ⚠ TTS modul: {e}")
+    TextToSpeech = None
+
+try:
+    from modules.internet_module import InternetModule
+except Exception as e:
+    print(f"  ⚠ Internet modul: {e}")
+    InternetModule = None
+
+try:
+    from modules.gui_module import JarvisGUI
+except Exception as e:
+    print(f"  ⚠ GUI modul: {e}")
+    JarvisGUI = None
 
 
 class Jarvis:
     def __init__(self):
         print(f"⚡ {ASSISTANT_NAME} yuklanmoqda...")
         self.command_processor = CommandProcessor()
-        self.ai_chat = AIChat()
-        self.tts = TextToSpeech()
+        self.ai_chat = AIChat() if AIChat else None
+        self.tts = TextToSpeech() if TextToSpeech else None
         self.memory = MemoryModule()
-        self.internet = InternetModule()
+        self.internet = InternetModule() if InternetModule else None
         self.gui = None
         self.speech = None
         self.system_control = None
@@ -37,11 +58,13 @@ class Jarvis:
         self.telegram = None
         self.gmail = None
         self._load_system_modules()
-        self.gui = JarvisGUI(
-            on_text_input=self.handle_input,
-            on_mic_toggle=self.toggle_microphone,
-            on_close=self.shutdown
-        )
+        
+        if JarvisGUI:
+            self.gui = JarvisGUI(
+                on_text_input=self.handle_input,
+                on_mic_toggle=self.toggle_microphone,
+                on_close=self.shutdown
+            )
         print(f"✅ {ASSISTANT_NAME} tayyor!")
 
 
@@ -81,8 +104,22 @@ class Jarvis:
             print(f"  ✗ Gmail: {e}")
     
     def run(self):
-        self.tts.speak(f"Salom {OWNER_NAME}! Men {ASSISTANT_NAME}, xizmatdaman.")
-        self.gui.start()
+        if self.tts:
+            self.tts.speak(f"Salom {OWNER_NAME}! Men {ASSISTANT_NAME}, xizmatdaman.")
+        if self.gui:
+            self.gui.start()
+        else:
+            # GUI yo'q bo'lsa terminal rejimda ishlash
+            print(f"\n⚡ {ASSISTANT_NAME} terminal rejimda ishlayapti.")
+            print("Chiqish uchun 'exit' yozing.\n")
+            while True:
+                try:
+                    text = input(f"👤 Siz: ")
+                    if text.lower() in ['exit', 'chiqish', 'quit']:
+                        break
+                    self.handle_input(text)
+                except KeyboardInterrupt:
+                    break
     
     def handle_input(self, text):
         if not text.strip():
@@ -94,7 +131,9 @@ class Jarvis:
         if response and self.gui:
             self.gui.add_message("jarvis", response)
             self.gui.hide_thinking()
-        if response and len(response) < 300:
+        elif response and not self.gui:
+            print(f"⚡ Jarvis: {response}")
+        if response and len(response) < 300 and self.tts:
             self.tts.speak(self._clean_for_speech(response))
         self.memory.save_conversation("user", text)
         self.memory.save_conversation("assistant", response or "")
@@ -205,11 +244,13 @@ class Jarvis:
     
     def shutdown(self):
         print(f"\n⚡ {ASSISTANT_NAME} o'chmoqda...")
-        self.tts.speak("Xayr, xo'jayin!")
-        time.sleep(1)
+        if self.tts:
+            self.tts.speak("Xayr, xo'jayin!")
+            time.sleep(1)
         if self.speech:
             self.speech.stop_listening()
-        self.tts.cleanup()
+        if self.tts:
+            self.tts.cleanup()
 
 
 if __name__ == "__main__":
